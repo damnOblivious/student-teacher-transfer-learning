@@ -15,6 +15,7 @@ import torchvision.datasets as datasets
 import torchvision.models as modelzoo
 import models.__init__ as init
 import datasets.data_loader as loader
+import back
 #from tensorboard_logger import Logger
 
 parser = opts.myargparser()
@@ -42,9 +43,10 @@ def main():
     #     else:
     #         print("=> no checkpoint found at '{}'".format(opt.resume))
     dataloader = loader.loadCIFAR10(opt)
-    print dataloader
+    print(dataloader)
     train_loader = dataloader['train_loader']
     val_loader = dataloader['val_loader']
+    back.teacherStudent(train_loader,val_loader,teacher,opt)
 
 
 if __name__ == '__main__':
