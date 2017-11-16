@@ -61,7 +61,7 @@ def myargparser():
     parser.add_argument('--name', required=True, type=str,
                         help='name of experiment')
     parser.add_argument('--teacher', required=True, nargs='+',
-                        type=str, help='list of teacher', options=models.teacherLoader.keys())
+                        type=str, help='list of teacher', options=['hello'])
     parser.add_argument('--student_filedir', type=str,
                         help='name of experiment')
 
@@ -110,7 +110,7 @@ def myargparser():
                         help='Weight of discrim adv loss')
     parser.add_argument('--wdiscClassify', default=0.4,
                         type=float, help='Weight of discrim classification loss')
-    parser.add_argument('--wstudSim', type=float, nargs='+'
+    parser.add_argument('--wstudSim', type=float, nargs='+',
                         help='Weight student reconstruction')
     parser.add_argument('--wstudDeriv', default=600,
                         type=float,  help='Weight student derivative')
