@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --gres=gpu:4
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=2048
 #SBATCH --output=slurm/%j.out
 

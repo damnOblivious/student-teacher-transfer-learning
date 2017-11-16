@@ -24,7 +24,6 @@ parser = opts.myargparser()
 def main():
     global opt, best_studentprec1
 
-    teacherNames = ["vgg11_1", "vgg11_2"]
     teachers = []
 
     opt = parser.parse_args()
