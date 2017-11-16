@@ -1,1 +1,26 @@
-bash clean.sh; CUDA_VISIBLE_DEVICES=0 python main.py --data_dir '../data' --epochs 2 --batch-size 64  --discriminatoroptimType 'sgd' --studentoptimType 'sgd' --maxlr 0.1 --minlr 0.0001 --teacher_filedir 'vgg11/checkpoint_293.tar' --dataset 'cifar10' --learningratescheduler='decayschedular' --decayinterval=15 --decaylevel=2 --revLabelFreq 20 --workers 2 --wdiscAdv 0.0 --wdiscClassify 0.0 --wstudSim 1.0 --wstudDeriv 0.0 --name='densenetbc_st_cifar10_40_12_100_12' --teacherno 1 --teacherlayers 100 --studentlayers 16 --growth 24 --reduce 0.5 --nclasses 10
+bash clean.sh;
+CUDA_VISIBLE_DEVICES=0 python main.py --data_dir '../data' \
+	--epochs 2 \
+	--batch-size 64  \
+	--discriminatoroptimType 'sgd' \
+	--studentoptimType 'sgd' \
+	--maxlr 0.1 \
+	--minlr 0.0001 \
+	--teacher 'vgg11_1' 'vgg11_2' \
+	--wstudSim 1.0 1.0 \
+	--dataset 'cifar10' \
+	--learningratescheduler='decayschedular' \
+	--decayinterval=15 \
+	--decaylevel=2 \
+	--revLabelFreq 20 \
+	--workers 2 \
+	--wdiscAdv 0.0 \
+	--wdiscClassify 0.0 \
+	--wstudDeriv 0.0 \
+	--name='densenetbc_st_cifar10_40_12_100_12' \
+	--teacherno 1 \
+	--teacherlayers 100 \
+	--studentlayers 16 \
+	--growth 24 \
+	--reduce 0.5 \
+	--nclasses 10

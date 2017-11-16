@@ -1,11 +1,12 @@
 import argparse
+import models
 # TODO: Update the opts file properly
 dset_choices = ['cifar10']
 reporttype_choices = ['acc']
 criterion_choices = ['crossentropy']
 optim_choices = ['sgd', 'adam']
 model_def_choices = ['vgg16_bn']
-
+c=['hello']
 
 def myargparser():
     parser = argparse.ArgumentParser(description='GAN Compression...')
@@ -59,8 +60,8 @@ def myargparser():
     # extra model stuff
     parser.add_argument('--name', required=True, type=str,
                         help='name of experiment')
-    parser.add_argument('--teacher_filedir', required=True,
-                        type=str, help='name of experiment')
+    parser.add_argument('--teacher', required=True, nargs='+',
+                        type=str, help='list of teacher', choices=models.teacherLoader.keys())
     parser.add_argument('--student_filedir', type=str,
                         help='name of experiment')
 
@@ -109,7 +110,7 @@ def myargparser():
                         help='Weight of discrim adv loss')
     parser.add_argument('--wdiscClassify', default=0.4,
                         type=float, help='Weight of discrim classification loss')
-    parser.add_argument('--wstudSim', default=0.5, type=float,
+    parser.add_argument('--wstudSim', type=float, nargs='+',
                         help='Weight student reconstruction')
     parser.add_argument('--wstudDeriv', default=600,
                         type=float,  help='Weight student derivative')
