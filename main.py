@@ -13,8 +13,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as modelzoo
-import models.__init__ as init
-import models.vgg11
+import models
 import datasets.data_loader as loader
 import back
 #from tensorboard_logger import Logger
@@ -23,15 +22,10 @@ parser = opts.myargparser()
 
 
 def main():
+    global opt, best_studentprec1
 
     teacherNames = ["vgg11_1", "vgg11_2"]
     teachers = []
-    teacherLoader = {
-        "vgg11_1": models.vgg11.load_model,
-        "vgg11_2": models.vgg11.load_model,
-    }
-
-    global opt, best_studentprec1
 
     opt = parser.parse_args()
     opt.logdir = opt.logdir + '/' + opt.name
@@ -41,7 +35,7 @@ def main():
 
     for t in teacherNames:
         print('Loading models...')
-        teacher = teacherLoader[t](opt.cuda)
+        teacher = models.teacherLoader[t](opt.cuda)
         print("Done loading from other file")
         # teacher = init.setup(teacher, opt)
         print(teacher)
