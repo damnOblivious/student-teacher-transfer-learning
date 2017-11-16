@@ -146,10 +146,6 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             softLoss = None
             for teacherNo in range(len(teachers)):
                 teacherOutput = teachers[teacherNo](b_x)
-                #print("teacher Output")
-                #print(teacherOutput)
-                #print("student output")
-                #print(studentOutput)               # student output
                 if softLoss is None:
                     softLoss = opt.wstudSim[teacherNo] * \
                         softLossCriterion(

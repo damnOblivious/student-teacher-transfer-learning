@@ -33,7 +33,7 @@ def main():
 
     print(opt)
 
-    for t in teacherNames:
+    for t in opt.teacher:
         print('Loading models...')
         teacher = models.teacherLoader[t](opt.cuda)
         print("Done loading from other file")
