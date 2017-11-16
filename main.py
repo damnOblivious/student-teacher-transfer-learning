@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as modelzoo
 import models.__init__ as init
-import models
+import models.vgg11
 import datasets.data_loader as loader
 import back
 #from tensorboard_logger import Logger
@@ -24,7 +24,7 @@ parser = opts.myargparser()
 
 def main():
 
-    teacherNames = ["vgg11_1"]
+    teacherNames = ["vgg11_1", "vgg11_2"]
     teachers = []
     teacherLoader = {
         "vgg11_1": models.vgg11.load_model,

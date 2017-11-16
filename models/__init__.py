@@ -14,13 +14,3 @@ def setup(model, opt):
     return model
 
 
-def load_model(opt, type):
-    print opt.teacher_filedir
-	if os.path.isfile(opt.teacher_filedir):
-        	checkpoint = torch.load(opt.teacher_filedir)
-        model = teacher1.vgg11()
-	model.features = torch.nn.DataParallel(model.features)
-        if opt.cuda:
-            model = model.cuda()
-        model.load_state_dict(checkpoint['state_dict'])
-    return model

@@ -152,8 +152,7 @@ def teacherStudent(train_loader, test_loader, teacher, opt):
 
 		hardLoss = loss_func(studentOutput, b_y)   # cross entropy lossi
 		softloss = l1Loss(studentOutput, teacherOutput.detach())
-
-        TotalLoss = hardLoss + opt.wstudSim * softloss
+	        TotalLoss = hardLoss + opt.wstudSim * softloss
 		optimizer.zero_grad()           # clear gradients for this training step
 		TotalLoss.backward()                 # backpropagation, compute gradients
 		optimizer.step()                # apply gradients

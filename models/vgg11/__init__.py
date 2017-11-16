@@ -69,7 +69,7 @@ def vgg11():
 
 
 def load_model(cuda):
-    name = "models/checkpoint_293.tar"
+    name = "models/vgg11/checkpoint_293.tar"
     if os.path.isfile(name):
         checkpoint = torch.load(name)
         model = vgg11()
