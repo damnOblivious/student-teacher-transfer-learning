@@ -17,36 +17,36 @@ LR = 0.0008              # learning rate
 
 class CNN(nn.Module):
     def __init__(self):
-        super(CNN,self).__init__()
+        super(CNN, self).__init__()
         # 3x32x32 ; 32x16x16 ; 64x8x8 ; 128x4x4 ; 256x2x2 ; 512x1x1
         self.conv1 = nn.Sequential(
-                nn.Conv2d(3,32,kernel_size=5,padding=2),
-                nn.BatchNorm2d(32),
-                nn.PReLU(),
-                nn.MaxPool2d(kernel_size=3, stride=2))
+            nn.Conv2d(3, 32, kernel_size=5, padding=2),
+            nn.BatchNorm2d(32),
+            nn.PReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2))
         self.conv2 = nn.Sequential(
-                nn.Conv2d(32,32,kernel_size=3,padding=2),
-                nn.BatchNorm2d(32),
-                nn.PReLU(),
-                nn.AvgPool2d(kernel_size=3, stride=2))
+            nn.Conv2d(32, 32, kernel_size=3, padding=2),
+            nn.BatchNorm2d(32),
+            nn.PReLU(),
+            nn.AvgPool2d(kernel_size=3, stride=2))
         self.conv3 = nn.Sequential(
-                nn.Conv2d(32,32,kernel_size=3,padding=2),
-                nn.BatchNorm2d(32),
-                nn.PReLU(),
-                nn.AvgPool2d(kernel_size=3, stride=2))
+            nn.Conv2d(32, 32, kernel_size=3, padding=2),
+            nn.BatchNorm2d(32),
+            nn.PReLU(),
+            nn.AvgPool2d(kernel_size=3, stride=2))
         self.conv4 = nn.Sequential(
-                nn.Conv2d(32,32,kernel_size=3,padding=2),
-                nn.BatchNorm2d(32),
-                nn.PReLU(),
-                nn.AvgPool2d(kernel_size=2, stride=2))
+            nn.Conv2d(32, 32, kernel_size=3, padding=2),
+            nn.BatchNorm2d(32),
+            nn.PReLU(),
+            nn.AvgPool2d(kernel_size=2, stride=2))
         self.conv5 = nn.Sequential(
-                nn.Conv2d(32,32,kernel_size=3,padding=0),
-                nn.BatchNorm2d(32),
-                nn.PReLU())
+            nn.Conv2d(32, 32, kernel_size=3, padding=0),
+            nn.BatchNorm2d(32),
+            nn.PReLU())
         self.conv6 = nn.Sequential(
-                nn.Conv2d(32,10,kernel_size=1,padding=0))
+            nn.Conv2d(32, 10, kernel_size=1, padding=0))
 
-    def forward(self,x):
+    def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
@@ -55,9 +55,11 @@ class CNN(nn.Module):
         x = self.conv5(x)
         x = self.conv6(x)
         #print(x.size())
-        x = x.view(x.size(0),-1)
+        x = x.view(x.size(0), -1)
 
         return x
+
+
 '''
 class CNN(nn.Module):
     def __init__(self):
@@ -115,21 +117,24 @@ class CNN(nn.Module):
         return output    # return x for visualization
 '''
 
-def teacherStudent(train_loader,test_loader,teacher,opt):
+
+def teacherStudent(train_loader, test_loader, teacher, opt):
 	cnn = CNN()
 	print(cnn)  # net architecture
 
-	optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)   # optimize all cnn parameters
-	loss_func = nn.CrossEntropyLoss()                       # the target label is not one-hotted
-	l1Loss = nn.L1Loss()	
+	# optimize all cnn parameters
+	optimizer = torch.optim.Adam(cnn.parameters(), lr=LR)
+	# the target label is not one-hotted
+	loss_func = nn.CrossEntropyLoss()
+	l1Loss = nn.L1Loss()
 	if opt.cuda:
 		loss_func = loss_func.cuda()
 		cnn = cnn.cuda()
-		l1Loss=nn.L1Loss().cuda()
-
+		l1Loss = nn.L1Loss().cuda()
 
 	for epoch in range(opt.epochs):
-	    for step, (x, y) in enumerate(train_loader):   # gives batch data, normalize x when iterate train_loader
+	    # gives batch data, normalize x when iterate train_loader
+	    for step, (x, y) in enumerate(train_loader):
 		b_x = Variable(x)
 		b_y = Variable(y)
 		if opt.cuda:
@@ -142,12 +147,13 @@ def teacherStudent(train_loader,test_loader,teacher,opt):
 		print(teacherOutput)
 		print("student output")
 		print(studentOutput)               # cnn output
-		
+
 		#studtotalLoss = self.computenlogStud(student_out, teacher_out, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
-		
+
 		hardLoss = loss_func(studentOutput, b_y)   # cross entropy lossi
-		softloss=l1Loss(studentOutput,teacherOutput.detach())
-		TotalLoss=hardLoss + opt.wstudSim*softloss
+		softloss = l1Loss(studentOutput, teacherOutput.detach())
+
+        TotalLoss = hardLoss + opt.wstudSim * softloss
 		optimizer.zero_grad()           # clear gradients for this training step
 		TotalLoss.backward()                 # backpropagation, compute gradients
 		optimizer.step()                # apply gradients

@@ -7,7 +7,7 @@ import os
 import shutil
 
 
-def setup(model, opt, type):
+def setup(model, opt):
     if opt.weight_init:
         utils.weights_init(model, opt)
 
@@ -15,8 +15,7 @@ def setup(model, opt, type):
 
 
 def load_model(opt, type):
-    if type == "teacher":
-	print opt.teacher_filedir
+    print opt.teacher_filedir
 	if os.path.isfile(opt.teacher_filedir):
         	checkpoint = torch.load(opt.teacher_filedir)
         model = teacher1.vgg11()

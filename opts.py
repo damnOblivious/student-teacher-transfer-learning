@@ -59,8 +59,11 @@ def myargparser():
     # extra model stuff
     parser.add_argument('--name', required=True, type=str,
                         help='name of experiment')
-    parser.add_argument('--teacher_filedir', required=True,
-                        type=str, help='name of experiment')
+    parser.add_argument('--teacher1_filedir', required=True,
+                        type=str, help='teacher 1 directory')
+    parser.add_argument('--teacher2_filedir', required=True,
+                         type=str, help='teacher 2 directory')
+
     parser.add_argument('--student_filedir', type=str,
                         help='name of experiment')
 
