@@ -143,14 +143,14 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
                 b_y = b_y.cuda()   # batch y
 
             studentOutput = student(b_x)
-            softLoss = -1
+            softLoss = None
             for teacherNo in range(len(teachers)):
                 teacherOutput = teachers[teacherNo](b_x)
                 print("teacher Output")
                 print(teacherOutput)
                 print("student output")
                 print(studentOutput)               # student output
-                if softLoss == -1:
+                if softLoss == None:
                     softLoss = opt.wstudSim[teacherNo] * \
                         softLossCriterion(
                             studentOutput, teacherOutput.detach())

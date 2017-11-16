@@ -7,7 +7,6 @@ import os
 from . import vgg11
 import shutil
 
-
 teacherLoader = {
     "vgg11_1": vgg11.load_model,
     "vgg11_2": vgg11.load_model,
