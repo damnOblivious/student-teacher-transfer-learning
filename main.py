@@ -36,15 +36,9 @@ def main():
         print('Loading models...')
         teacher = models.teacherLoader[t](opt.cuda)
         print("Done loading from other file")
-        # teacher = init.setup(teacher, opt)
         print(teacher)
         teachers.append(teacher)
 
-    # if opt.resume:
-    #     if os.path.isfile(opt.resume):
-    #         model, optimizer, opt, best_prec1 = init.resumer(
-    #             opt, model, optimizer)
-    #     else:
     #         print("=> no checkpoint found at '{}'".format(opt.resume))
     dataloader = loader.loadCIFAR10(opt)
     print(dataloader)
