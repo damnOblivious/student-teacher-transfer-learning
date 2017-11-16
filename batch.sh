@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --gres=gpu:4
-#SBATCH --cpus-per-task=8
-#SBATCH --mem-per-cpu=4096
+#SBATCH --cpus-per-task=2
+#SBATCH --mem-per-cpu=2048
 #SBATCH --output=slurm/%j.out
 
 module add cuda/8.0

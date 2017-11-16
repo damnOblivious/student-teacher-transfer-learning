@@ -6,7 +6,7 @@ reporttype_choices = ['acc']
 criterion_choices = ['crossentropy']
 optim_choices = ['sgd', 'adam']
 model_def_choices = ['vgg16_bn']
-
+c=['hello']
 
 def myargparser():
     parser = argparse.ArgumentParser(description='GAN Compression...')
@@ -61,7 +61,7 @@ def myargparser():
     parser.add_argument('--name', required=True, type=str,
                         help='name of experiment')
     parser.add_argument('--teacher', required=True, nargs='+',
-                        type=str, help='list of teacher', options=['hello'])
+                        type=str, help='list of teacher', choices=models.teacherLoader.keys())
     parser.add_argument('--student_filedir', type=str,
                         help='name of experiment')
 
