@@ -127,10 +127,14 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
     # the target label is not one-hotted
     hardLossCriterion = nn.CrossEntropyLoss()
     softLossCriterion = nn.L1Loss()
+    derivativeCriterion=nn.L1Loss()
+    similarityCriterion=nn.L1Loss()
     if opt.cuda:
         hardLossCriterion = hardLossCriterion.cuda()
         student = student.cuda()
         softLossCriterion = nn.L1Loss().cuda()
+    	derivativeCriterion=nn.L1Loss().cuda()
+    	similarityCriterion=nn.L1Loss().cuda()
 
     for epoch in range(opt.epochs):
         # gives batch data, normalize x when iterate train_loader
@@ -144,6 +148,7 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
 
             studentOutput = student(b_x)
             softLoss = None
+	    derivativeLoss=None
             for teacherNo in range(len(teachers)):
                 teacherOutput = teachers[teacherNo](b_x)
                 if softLoss is None:
@@ -155,12 +160,30 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
                         opt.wstudSim[teacherNo] * \
                         softLossCriterion(
                             studentOutput, teacherOutput.detach())
+		
+		teachersimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(teacherOutput,studentOutput.detach())
+                #studtotalLoss = schersimLoss =  opt.wstudSim * similarityCriterion(teacherOutput,studentOutput.detach())
+                teachergrad_params = torch.autograd.grad(teachersimLoss, teachers[teacherNo].parameters(), create_graph=True)
 
-            #studtotalLoss = self.computenlogStud(student_out, teacher_out, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
+                studentsimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(studentOutput,teacherOutput.detach())
+                studentgrad_params = torch.autograd.grad(studentsimLoss, student.parameters(), create_graph=True)
+                teachergrad_params,studentgrad_params = teachergrad_params[-1],studentgrad_params[-1]
+		if derivativeLoss is None:
+			derivativeLoss = opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+		else:
+			derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+		
+			
+                #Normalization of gradients - Check if they were mismatched first
+               # meanTeachergrad, stdTeachergrad = teachergrad_params.mean(), teachergrad_params.std()
+            #meanStudentgrad, stdStudentgrad = studentgrad_params.mean(), studentgrad_params.std()
+                #teachergrad_params = (teachergrad_params - meanTeachergrad)/stdTeachergrad
+                #studentgrad_params = (studentgrad_params - meanStudentgrad)/stdStudentgrade
+		#lf.computenlogStud(studentOutput, teacherOutput, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
 
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
-            TotalLoss = hardLoss + softLoss
+            TotalLoss = hardLoss + softLoss + derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
