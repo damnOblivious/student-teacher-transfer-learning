@@ -30,20 +30,23 @@ def main():
     opt.logdir = opt.logdir + '/' + opt.name
    # logger = Logger(opt.logdir)
 
-    #print(opt)
+    print opt
 
-    print('Loading models...')
+    print 'Loading models...'
     for t in opt.teacher:
-	print "loaded teacher" , t
+        print "loaded teacher", t
         teacher = models.teacherLoader[t](opt.cuda)
         teachers.append(teacher)
-    print("Done loading from other file")
 
+    print "Done loading from other file"
+
+    student = models.student.GetStudent()
+    if opt.cuda:
+        student = student.cuda()
     dataloader = loader.loadCIFAR10(opt)
-#    print(dataloader)
     train_loader = dataloader['train_loader']
     val_loader = dataloader['val_loader']
-    back.teacherStudent(train_loader, val_loader, teachers, opt)
+    back.teacherStudent(train_loader, val_loader, teachers, student, opt)
 
 
 if __name__ == '__main__':

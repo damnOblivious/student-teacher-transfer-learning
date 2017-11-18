@@ -5,7 +5,6 @@ dset_choices = ['cifar10']
 reporttype_choices = ['acc']
 criterion_choices = ['crossentropy']
 optim_choices = ['sgd', 'adam']
-model_def_choices = ['vgg16_bn']
 
 
 def myargparser():
@@ -41,12 +40,11 @@ def myargparser():
                         help='decays by a power of decaylevel')
     parser.add_argument('--studentoptimType', required=True, choices=optim_choices,
                         type=str, help='Optimizers. Options:' + str(optim_choices))
-    parser.add_argument('--discriminatoroptimType', required=True, choices=optim_choices,
-                        type=str, help='Optimizers. Options:' + str(optim_choices))
 
     parser.add_argument('--maxlr', required=True,
                         type=float, help='initial learning rate')
-    parser.add_argument('--lr', type=float, help='initial learning rate')
+    parser.add_argument('--lr', default=0.0008, type=float,
+                        help='initial learning rate')
     parser.add_argument('--minlr', required=True,
                         type=float, help='initial learning rate')
 
@@ -88,12 +86,6 @@ def myargparser():
     # Densenet
     parser.add_argument('--teacherno', required=True, type=int,
                         help='total number of layers (default: 100)')
-    parser.add_argument('--teacherlayers', required=True, type=int,
-                        help='total number of layers (default: 100)')
-    parser.add_argument('--studentlayers', required=True, type=int,
-                        help='total number of layers (default: 100)')
-    # parser.add_argument('--expandSize', default=2, type=int,
-    #                help='factor to compress by')
     parser.add_argument('--growth', required=True, type=int,
                         help='number of new channels per layer (default: 24)')
     parser.add_argument('--droprate', default=0, type=float,
