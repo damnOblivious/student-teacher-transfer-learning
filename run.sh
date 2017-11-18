@@ -1,26 +1,21 @@
 bash clean.sh;
 python main.py --data_dir '../data' \
-	--epochs 10 \
+	--epochs 50 \
 	--batch-size 64  \
-	--discriminatoroptimType 'sgd' \
-	--studentoptimType 'sgd' \
+	--studentoptimType 'adam' \
 	--maxlr 0.1 \
 	--minlr 0.0001 \
+	--lr 0.008\
 	--teacher 'vgg11_1' \
-	--wstudSim 1.0 \
-	--wstudDeriv 0.0 \
-	--dataset 'cifar10' \
-	--learningratescheduler='decayschedular' \
+	--wstudSim 10.0 \
+	--wstudDeriv 5.0 \
+	--learningratescheduler='cifarschedular' \
 	--decayinterval=15 \
 	--decaylevel=2 \
 	--revLabelFreq 20 \
 	--workers 2 \
-	--wdiscAdv 0.0 \
-	--wdiscClassify 0.0 \
 	--name='densenetbc_st_cifar10_40_12_100_12' \
 	--teacherno 1 \
-	--teacherlayers 100 \
-	--studentlayers 16 \
 	--growth 24 \
 	--reduce 0.5 \
 	--nclasses 10
