@@ -30,18 +30,17 @@ def main():
     opt.logdir = opt.logdir + '/' + opt.name
    # logger = Logger(opt.logdir)
 
-    print(opt)
+    #print(opt)
 
+    print('Loading models...')
     for t in opt.teacher:
-        print('Loading models...')
+	print "loaded teacher" , t
         teacher = models.teacherLoader[t](opt.cuda)
-        print("Done loading from other file")
-        print(teacher)
         teachers.append(teacher)
+    print("Done loading from other file")
 
-    #         print("=> no checkpoint found at '{}'".format(opt.resume))
     dataloader = loader.loadCIFAR10(opt)
-    print(dataloader)
+#    print(dataloader)
     train_loader = dataloader['train_loader']
     val_loader = dataloader['val_loader']
     back.teacherStudent(train_loader, val_loader, teachers, opt)
