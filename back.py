@@ -50,10 +50,20 @@ def runValidation(network, dataLoader, opt):
 
 def teacherStudent(train_loader, test_loader, teachers, student, opt):
     # optimize all student parameters
-    optimizer = getOptim(opt, student)
+    # optimizer = getOptim(opt, student)
+    optimizer = torch.optim.Adam(student.parameters(), lr=opt.lr)
     hardLossCriterion = nn.CrossEntropyLoss()
-    softLossCriterion = nn.L1Loss()
+    softLossCriterion = nn.KLDivLoss()
     derivativeCriterion = nn.L1Loss()
+
+    temp = 0
+    for index, weight in enumerate(opt.wstudSim):
+        temp = temp+weight
+    for index, weight in enumerate(opt.wstudSim):
+        opt.wstudSim[index] = opt.wstudSim[index] / temp
+
+    temp = opt.softWeight+opt.hardWeight
+    opt.softWeight, opt.hardWeight = opt.softWeight / temp, opt.hardWeight / temp
 
     if opt.cuda:
         hardLossCriterion = hardLossCriterion.cuda()
@@ -62,8 +72,8 @@ def teacherStudent(train_loader, test_loader, teachers, student, opt):
 
     for epoch in range(opt.epochs):
 
-        utils.adjust_learning_rate(opt, optimizer, epoch)
-        for _, (x, y) in enumerate(train_loader):
+        # utils.adjust_learning_rate(opt, optimizer, epoch)
+        for step, (x, y) in enumerate(train_loader):
             b_x = Variable(x)
             b_y = Variable(y)
             if opt.cuda:
@@ -71,10 +81,14 @@ def teacherStudent(train_loader, test_loader, teachers, student, opt):
                 b_y = b_y.cuda(async=True)   # batch y
 
             studentOutput = student(b_x)
-
+            softStudentOutput = torch.nn.functional.softmax(studentOutput)
             # normalize student output
             meanStudent, stdStudent = studentOutput.mean(), studentOutput.std()
             studentOutput = (studentOutput - meanStudent) / stdStudent
+
+            # meanSoftStudent, stdSoftStudent = softStudentOutput.mean(), softStudentOutput.std()
+            # softStudentOutput = (softStudentOutput -
+            #                      meanSoftStudent) / stdSoftStudent
 
             softLoss = None
             derivativeLoss = None
@@ -82,35 +96,35 @@ def teacherStudent(train_loader, test_loader, teachers, student, opt):
                 teacherOutput = teacher(b_x)
 
                 # normalize teacher output
-                meanTeacher, stdTeacher = teacherOutput.mean(), teacherOutput.std()
-                teacherOutput = (teacherOutput - meanTeacher) / stdTeacher
+                # meanTeacher, stdTeacher = teacherOutput.mean(), teacherOutput.std()
+                # teacherOutput = (teacherOutput - meanTeacher) / stdTeacher
 
-                teachersimLoss = opt.wstudSim[teacherNo] * \
-                    softLossCriterion(teacherOutput, studentOutput.detach())
-                studentsimLoss = opt.wstudSim[teacherNo] * \
-                    softLossCriterion(studentOutput, teacherOutput.detach())
+                # teachersimLoss = softLossCriterion(teacherOutput, studentOutput.detach())
+                studentsimLoss = softLossCriterion(softStudentOutput, teacherOutput.detach())
 
-                teachergrad_params = torch.autograd.grad(
-                    teachersimLoss, teacher.parameters(), create_graph=True)
-                studentgrad_params = torch.autograd.grad(
-                    studentsimLoss, student.parameters(), create_graph=True)
-                teachergrad_params, studentgrad_params = teachergrad_params[-1], studentgrad_params[-1]
+                # teachergrad_params = torch.autograd.grad(
+                #     teachersimLoss, teacher.parameters(), create_graph=True)
+                # studentgrad_params = torch.autograd.grad(
+                #     studentsimLoss, student.parameters(), create_graph=True)
+                # teachergrad_params, studentgrad_params = teachergrad_params[-1], studentgrad_params[-1]
+
+                studentsimLoss = opt.wstudSim[teacherNo] * studentsimLoss
 
                 # Normalization of gradients - Check if they were mismatched first
-                meanTeachergrad, stdTeachergrad = teachergrad_params.mean(), teachergrad_params.std()
-                meanStudentgrad, stdStudentgrad = studentgrad_params.mean(), studentgrad_params.std()
-                teachergrad_params = (teachergrad_params -
-                                      meanTeachergrad) / stdTeachergrad
-                studentgrad_params = (studentgrad_params -
-                                      meanStudentgrad) / stdStudentgrad
+                # meanTeachergrad, stdTeachergrad = teachergrad_params.mean(), teachergrad_params.std()
+                # meanStudentgrad, stdStudentgrad = studentgrad_params.mean(), studentgrad_params.std()
+                # teachergrad_params = (teachergrad_params -
+                #                       meanTeachergrad) / stdTeachergrad
+                # studentgrad_params = (studentgrad_params -
+                #                       meanStudentgrad) / stdStudentgrad
 
-                curDerivativeLoss = opt.wstudDeriv[teacherNo] * derivativeCriterion(
-                    studentgrad_params, teachergrad_params.detach())
+                # curDerivativeLoss = opt.wstudDeriv[teacherNo] * derivativeCriterion(
+                #     studentgrad_params, teachergrad_params.detach())
 
-                if derivativeLoss is None:
-                    derivativeLoss = curDerivativeLoss
-                else:
-                    derivativeLoss = derivativeLoss + curDerivativeLoss
+                # if derivativeLoss is None:
+                #     derivativeLoss = curDerivativeLoss
+                # else:
+                #     derivativeLoss = derivativeLoss + curDerivativeLoss
 
                 if softLoss is None:
                     softLoss = studentsimLoss
@@ -119,7 +133,7 @@ def teacherStudent(train_loader, test_loader, teachers, student, opt):
 
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy loss
-            TotalLoss = hardLoss + softLoss + derivativeLoss
+            TotalLoss = opt.hardWeight*hardLoss + opt.softWeight*softLoss #+ derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients

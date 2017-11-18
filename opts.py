@@ -103,7 +103,11 @@ def myargparser():
     parser.add_argument('--wdiscClassify', default=0.4,
                         type=float, help='Weight of discrim classification loss')
     parser.add_argument('--wstudSim', type=float, nargs='+',
-                        help='Weight student reconstruction')
+                        help='Weight for soft loss calculation')
+    parser.add_argument('--softWeight', type=float, default=0.0,
+                        help='recontruction loss weight')
+    parser.add_argument('--hardWeight', type=float, default=0.0,
+                        help='real target loss weight')
     parser.add_argument('--wstudDeriv', type=float,
                         nargs='+', help='Weight student derivative')
 
