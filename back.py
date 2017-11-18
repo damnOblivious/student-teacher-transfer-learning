@@ -61,10 +61,26 @@ class CNN(nn.Module):
 
 
 def getAccuracy(studentOutput, label):
-    (maxOutput, student_output) = torch.max(studentOutput,1)
+    (maxOutput, student_output) = torch.max(studentOutput, 1)
     isAccurate = (student_output == label)
     Sum = torch.sum(isAccurate)
     return Sum.data[0]
+
+def runValidation(network, dataLoader,opt):
+    accurate_results = 0.0
+    total = 0.0
+    for _, (x, y) in enumerate(dataLoader):
+        b_x = Variable(x, volatile=True)
+        b_y = Variable(y, volatile=True)
+        if opt.cuda:
+            b_x = b_x.cuda(async=True)
+            b_y = b_y.cuda(async=True)
+        studentOutput = network(b_x)
+        accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
+        total = total + studentOutput.size()[0]
+
+    return accurate_results, total
+
 
 def teacherStudent(train_loader, test_loader, teachers, opt):
     student = CNN()
@@ -74,20 +90,16 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
     hardLossCriterion = nn.CrossEntropyLoss()
     softLossCriterion = nn.L1Loss()
     derivativeCriterion = nn.L1Loss()
-    similarityCriterion = nn.L1Loss()
 
     if opt.cuda:
         hardLossCriterion = hardLossCriterion.cuda()
         student = student.cuda()
-        softLossCriterion = nn.L1Loss().cuda()
-        derivativeCriterion = nn.L1Loss().cuda()
-        similarityCriterion = nn.L1Loss().cuda()
-
+        softLossCriterion = softLossCriterion.cuda()
+        derivativeCriterion = derivativeCriterion.cuda()
 
     for epoch in range(opt.epochs):
-	
 
-        for step, (x, y) in enumerate(train_loader):
+        for _, (x, y) in enumerate(train_loader):
             b_x = Variable(x)
             b_y = Variable(y)
             if opt.cuda:
@@ -97,62 +109,44 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             studentOutput = student(b_x)
             softLoss = None
             derivativeLoss = None
-            for teacherNo in range(len(teachers)):
-                teacherOutput = teachers[teacherNo](b_x)
-                if softLoss is None:
-                    softLoss = opt.wstudSim[teacherNo] * \
-                        softLossCriterion(
-                            studentOutput, teacherOutput.detach())
-                else:
-                    softLoss = softLoss + \
-                        opt.wstudSim[teacherNo] * \
-                        softLossCriterion(
-                            studentOutput, teacherOutput.detach())
+            for teacherNo, teacher in enumerate(teachers):
+                teacherOutput = teacher(b_x)
 
-                teachersimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(teacherOutput,studentOutput.detach())
-                teachergrad_params = torch.autograd.grad(teachersimLoss, teachers[teacherNo].parameters(), create_graph=True)
-                studentsimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(studentOutput,teacherOutput.detach())
-                studentgrad_params = torch.autograd.grad(studentsimLoss, student.parameters(), create_graph=True)
-                teachergrad_params,studentgrad_params = teachergrad_params[-1],studentgrad_params[-1]
+                teachersimLoss = opt.wstudSim[teacherNo] * \
+                    softLossCriterion(teacherOutput, studentOutput.detach())
+                studentsimLoss = opt.wstudSim[teacherNo] * \
+                    softLossCriterion(studentOutput, teacherOutput.detach())
+
+                teachergrad_params = torch.autograd.grad(
+                    teachersimLoss, teacher.parameters(), create_graph=True)
+                studentgrad_params = torch.autograd.grad(
+                    studentsimLoss, student.parameters(), create_graph=True)
+
+                teachergrad_params, studentgrad_params = teachergrad_params[-1], studentgrad_params[-1]
+
+                curDerivativeLoss = opt.wstudDeriv[teacherNo] * derivativeCriterion(
+                    studentgrad_params, teachergrad_params.detach())
+
                 if derivativeLoss is None:
-                    derivativeLoss = opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+                    derivativeLoss = curDerivativeLoss
                 else:
-                    derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+                    derivativeLoss = derivativeLoss + curDerivativeLoss
 
-            
+                if softLoss is None:
+                    softLoss = studentsimLoss
+                else:
+                    softLoss = softLoss + studentsimLoss
+
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
             TotalLoss = hardLoss + softLoss + derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
-	
+        
+        accurate_results, total = runValidation(student, train_loader,opt)
+        print "On epoch", epoch, "Accuracy = ", accurate_results / total
 
-	accurate_results = 0.0; total = 0.0;
-        for step, (x,y) in enumerate(train_loader):
-            b_x = Variable(x, volatile=True)
-            b_y = Variable(y, volatile=True)
-            if opt.cuda:
-                b_x = b_x.cuda(async = True) 
-                b_y = b_y.cuda(async = True)
-            studentOutput = student(b_x)
-            accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
-	    total = total + studentOutput.size()[0]
-
-        print "On epoch", epoch, "Accuracy = " , accurate_results/total
-
-
-    accurate_results = 0.0; total = 0.0;
-    for step, (x,y) in enumerate(test_loader):
-        b_x = Variable(x, volatile=True)
-        b_y = Variable(y, volatile=True)
-        if opt.cuda:
-            b_x = b_x.cuda(async = True) 
-            b_y = b_y.cuda(async = True)
-        studentOutput = student(b_x)
-        accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
-        total = total + studentOutput.size()[0]
-
-    print 'validating on test samples of size = ',total
-    print 'Accuracy = ', accurate_results/total
-
+    accurate_results, total = runValidation(student, test_loader,opt)
+    print 'validating on test samples of size = ', total
+    print 'Accuracy = ', accurate_results / total
