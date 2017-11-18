@@ -120,10 +120,8 @@ class CNN(nn.Module):
 def getAccuracy(studentOutput, label):
     (maxOutput, student_output) = torch.max(studentOutput,1)
     isAccurate = (student_output == label)
-    #print isAccurate
     Sum = torch.sum(isAccurate)
-    #print 'Sum = ', Sum
-    return Sum.double()[0]
+    return Sum.data[0]
 
 def teacherStudent(train_loader, test_loader, teachers, opt):
     student = CNN()
@@ -146,7 +144,6 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
     for epoch in range(opt.epochs):
         # gives batch data, normalize x when iterate train_loader
         print "epoch : ", epoch
-        accurate_results = 1.0; total = 1.0;
         for step, (x, y) in enumerate(train_loader):
             b_x = Variable(x)
             b_y = Variable(y)
@@ -179,20 +176,15 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
                 derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
 
 
-            #studtotalLoss = self.computenlogStud(student_out, teacher_out, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
-            
-	    # printing accuracy
-	    #(maxOutput, OutputLabel) = torch.max(studentOutput,1) 
-            #accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
-            #total = total + studentOutput.size()[0]
-	    #print accurate_results, ' -------------- ' , total
-
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
             TotalLoss = hardLoss + softLoss + derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
+        
+
+	accurate_results = 0.0; total = 0.0;
         for step, (x,y) in enumerate(train_loader):
             b_x = Variable(x, volatile=True)
             b_y = Variable(y, volatile=True)
@@ -203,6 +195,19 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
 	    total = total + studentOutput.size()[0]
 
-        print 'Accuracy = ', accurate_results/total
-        print 'Total Sample = ',total
-        print 'Correct Output = ', accurate_results
+        print 'Accuracy on training set = ', accurate_results/total
+
+
+    accurate_results = 0.0; total = 0.0;
+    for step, (x,y) in enumerate(test_loader):
+        b_x = Variable(x, volatile=True)
+        b_y = Variable(y, volatile=True)
+        if opt.cuda:
+            b_x = b_x.cuda(async = True) 
+            b_y = b_y.cuda(async = True)
+        studentOutput = student(b_x)
+        accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
+        total = total + studentOutput.size()[0]
+
+    print 'validating on test samples of size = ',total
+    print 'Accuracy = ', accurate_results/total
