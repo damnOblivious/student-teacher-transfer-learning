@@ -1,6 +1,6 @@
 bash clean.sh;
 CUDA_VISIBLE_DEVICES=0 python main.py --data_dir '../data' \
-	--epochs 2 \
+	--epochs 10 \
 	--batch-size 64  \
 	--discriminatoroptimType 'sgd' \
 	--studentoptimType 'sgd' \
