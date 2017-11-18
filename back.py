@@ -60,63 +60,6 @@ class CNN(nn.Module):
         return x
 
 
-'''
-class CNN(nn.Module):
-    def __init__(self):
-        super(CNN, self).__init__()
-        self.conv1 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(
-                in_channels=3,              # input height
-                out_channels=5,            # n_filters
-                kernel_size=(5,8),              # filter size
-                stride=(1,6),                   # filter movement/step
-                padding=(18,0),                  # if want same width and length of this image after con2d, padding=(kernel_size-1)/2 if stride=1
-            ),                              # output shape (16, 28, 28)
-            nn.ReLU(),                      # activation
-         #   nn.MaxPool2d(kernel_size=2),    # choose max value in 2x2 area, output shape (16, 14, 14)
-        )
-        self.conv2 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(5, 3, (1,3), (1,1), (0,0)),     # output shape (32, 14, 14)
-            nn.ReLU(),                      # activation
-          #  nn.MaxPool2d(2),                # output shape (32, 7, 7)
-        )
-        self.conv3 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(3, 3, 1, 1, 0),     # output shape (32, 14, 14)
-            nn.ReLU(),                      # activation
-          #  nn.MaxPool2d(2),                # output shape (32, 7, 7)
-        )
-        self.conv4 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(3, 3, 1, 1, 0),     # output shape (32, 14, 14)
-            nn.ReLU(),                      # activation
-          #  nn.MaxPool2d(2),                # output shape (32, 7, 7)
-        )
-        self.conv5 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(3, 3, 1, 1, 0),     # output shape (32, 14, 14)
-            nn.ReLU(),                      # activation
-          #  nn.MaxPool2d(2),                # output shape (32, 7, 7)
-        )
-        self.conv6 = nn.Sequential(         # input shape (1, 28, 28)
-            nn.Conv2d(3, 1, (5,5), (1,1), (20,1)),     # output shape (32, 14, 14)
-            nn.ReLU(),                      # activation
-          #  nn.MaxPool2d(2),                # output shape (32, 7, 7)
-        )
-        self.out = nn.Linear(1 *100 * 1, 10)
-    self.softMax = nn.Softmax()   # fully connected layer, output 10 classes
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
-    
-        x = x.view(x.size(0), -1)           # flatten the output of conv2 to (batch_size, 32 * 7 * 7)
-        x = self.out(x)
-    output = self.softMax(x)
-        return output    # return x for visualization
-'''
-
 def getAccuracy(studentOutput, label):
     (maxOutput, student_output) = torch.max(studentOutput,1)
     isAccurate = (student_output == label)
@@ -125,15 +68,14 @@ def getAccuracy(studentOutput, label):
 
 def teacherStudent(train_loader, test_loader, teachers, opt):
     student = CNN()
-    print(student)  # net architecture
 
     # optimize all student parameters
     optimizer = torch.optim.Adam(student.parameters(), lr=LR)
-    # the target label is not one-hotted
     hardLossCriterion = nn.CrossEntropyLoss()
     softLossCriterion = nn.L1Loss()
     derivativeCriterion = nn.L1Loss()
     similarityCriterion = nn.L1Loss()
+
     if opt.cuda:
         hardLossCriterion = hardLossCriterion.cuda()
         student = student.cuda()
@@ -141,9 +83,10 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
         derivativeCriterion = nn.L1Loss().cuda()
         similarityCriterion = nn.L1Loss().cuda()
 
+
     for epoch in range(opt.epochs):
-        # gives batch data, normalize x when iterate train_loader
-        print "epoch : ", epoch
+	
+
         for step, (x, y) in enumerate(train_loader):
             b_x = Variable(x)
             b_y = Variable(y)
@@ -165,24 +108,25 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
                         opt.wstudSim[teacherNo] * \
                         softLossCriterion(
                             studentOutput, teacherOutput.detach())
-            teachersimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(teacherOutput,studentOutput.detach())
-            teachergrad_params = torch.autograd.grad(teachersimLoss, teachers[teacherNo].parameters(), create_graph=True)
-            studentsimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(studentOutput,teacherOutput.detach())
-            studentgrad_params = torch.autograd.grad(studentsimLoss, student.parameters(), create_graph=True)
-            teachergrad_params,studentgrad_params = teachergrad_params[-1],studentgrad_params[-1]
-            if derivativeLoss is None:
-                derivativeLoss = opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
-            else:
-                derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
 
+                teachersimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(teacherOutput,studentOutput.detach())
+                teachergrad_params = torch.autograd.grad(teachersimLoss, teachers[teacherNo].parameters(), create_graph=True)
+                studentsimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(studentOutput,teacherOutput.detach())
+                studentgrad_params = torch.autograd.grad(studentsimLoss, student.parameters(), create_graph=True)
+                teachergrad_params,studentgrad_params = teachergrad_params[-1],studentgrad_params[-1]
+                if derivativeLoss is None:
+                    derivativeLoss = opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+                else:
+                    derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
 
+            
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
             TotalLoss = hardLoss + softLoss + derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
-        
+	
 
 	accurate_results = 0.0; total = 0.0;
         for step, (x,y) in enumerate(train_loader):
@@ -195,7 +139,7 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
 	    total = total + studentOutput.size()[0]
 
-        print 'Accuracy on training set = ', accurate_results/total
+        print "On epoch", epoch, "Accuracy = " , accurate_results/total
 
 
     accurate_results = 0.0; total = 0.0;
@@ -211,3 +155,4 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
 
     print 'validating on test samples of size = ',total
     print 'Accuracy = ', accurate_results/total
+
