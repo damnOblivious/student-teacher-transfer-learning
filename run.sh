@@ -1,13 +1,14 @@
 bash clean.sh;
-CUDA_VISIBLE_DEVICES=0 python main.py --data_dir '../data' \
-	--epochs 6 \
+python main.py --data_dir '../data' \
+	--epochs 10 \
 	--batch-size 64  \
 	--discriminatoroptimType 'sgd' \
 	--studentoptimType 'sgd' \
 	--maxlr 0.1 \
 	--minlr 0.0001 \
-	--teacher 'vgg11_1' 'vgg11_2' \
-	--wstudSim 1.0 1.0 \
+	--teacher 'vgg11_1' \
+	--wstudSim 1.0 \
+	--wstudDeriv 0.0 \
 	--dataset 'cifar10' \
 	--learningratescheduler='decayschedular' \
 	--decayinterval=15 \
@@ -16,7 +17,6 @@ CUDA_VISIBLE_DEVICES=0 python main.py --data_dir '../data' \
 	--workers 2 \
 	--wdiscAdv 0.0 \
 	--wdiscClassify 0.0 \
-	--wstudDeriv 0.0 \
 	--name='densenetbc_st_cifar10_40_12_100_12' \
 	--teacherno 1 \
 	--teacherlayers 100 \
