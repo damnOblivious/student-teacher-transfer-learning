@@ -51,10 +51,10 @@ class CNN(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
-        #print(x.size())
+        # print(x.size())
         x = self.conv5(x)
         x = self.conv6(x)
-        #print(x.size())
+        # print(x.size())
         x = x.view(x.size(0), -1)
 
         return x
@@ -117,17 +117,19 @@ class CNN(nn.Module):
         return output    # return x for visualization
 '''
 
+
 def getAccuracy(studentOutput, label):
-    (maxOutput, student_output) = torch.max(studentOutput,1)
+    (maxOutput, student_output) = torch.max(studentOutput, 1)
     isAccurate = (student_output == label)
-    #print isAccurate
+    # print isAccurate
     Sum = torch.sum(isAccurate)
-    #print 'Sum = ', Sum
+    # print 'Sum = ', Sum
     return Sum.double()[0]
+
 
 def teacherStudent(train_loader, test_loader, teachers, opt):
     student = CNN()
-    print(student)  # net architecture
+    print student  # net architecture
 
     # optimize all student parameters
     optimizer = torch.optim.Adam(student.parameters(), lr=LR)
@@ -146,8 +148,9 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
     for epoch in range(opt.epochs):
         # gives batch data, normalize x when iterate train_loader
         print "epoch : ", epoch
-        accurate_results = 1.0; total = 1.0;
-        for step, (x, y) in enumerate(train_loader):
+        accurate_results = 1.0
+        total = 1.0
+        for _, (x, y) in enumerate(train_loader):
             b_x = Variable(x)
             b_y = Variable(y)
             if opt.cuda:
@@ -157,8 +160,9 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             studentOutput = student(b_x)
             softLoss = None
             derivativeLoss = None
-            for teacherNo in range(len(teachers)):
-                teacherOutput = teachers[teacherNo](b_x)
+            teacherNo, teacher = None, None
+            for teacherNo, teacher in enumerate(teachers):
+                teacherOutput = teacher(b_x)
                 if softLoss is None:
                     softLoss = opt.wstudSim[teacherNo] * \
                         softLossCriterion(
@@ -168,24 +172,31 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
                         opt.wstudSim[teacherNo] * \
                         softLossCriterion(
                             studentOutput, teacherOutput.detach())
-            teachersimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(teacherOutput,studentOutput.detach())
-            teachergrad_params = torch.autograd.grad(teachersimLoss, teachers[teacherNo].parameters(), create_graph=True)
-            studentsimLoss =  opt.wstudSim[teacherNo] * similarityCriterion(studentOutput,teacherOutput.detach())
-            studentgrad_params = torch.autograd.grad(studentsimLoss, student.parameters(), create_graph=True)
-            teachergrad_params,studentgrad_params = teachergrad_params[-1],studentgrad_params[-1]
+            teachersimLoss = opt.wstudSim[teacherNo] * \
+                similarityCriterion(teacherOutput, studentOutput.detach())
+            teachergrad_params = torch.autograd.grad(
+                teachersimLoss, teacher.parameters(), create_graph=True)
+            studentsimLoss = opt.wstudSim[teacherNo] * \
+                similarityCriterion(studentOutput, teacherOutput.detach())
+            studentgrad_params = torch.autograd.grad(
+                studentsimLoss, student.parameters(), create_graph=True)
+            teachergrad_params, studentgrad_params = teachergrad_params[-1], studentgrad_params[-1]
             if derivativeLoss is None:
-                derivativeLoss = opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
+                derivativeLoss = opt.wstudDeriv * \
+                    derivativeCriterion(studentgrad_params,
+                                        teachergrad_params.detach())
             else:
-                derivativeLoss = derivativeLoss + opt.wstudDeriv * derivativeCriterion(studentgrad_params,teachergrad_params.detach())
-
+                derivativeLoss = derivativeLoss + opt.wstudDeriv * \
+                    derivativeCriterion(studentgrad_params,
+                                        teachergrad_params.detach())
 
             #studtotalLoss = self.computenlogStud(student_out, teacher_out, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
-            
-	    # printing accuracy
-	    #(maxOutput, OutputLabel) = torch.max(studentOutput,1) 
+
+            # printing accuracy
+            #(maxOutput, OutputLabel) = torch.max(studentOutput,1)
             #accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
             #total = total + studentOutput.size()[0]
-	    #print accurate_results, ' -------------- ' , total
+            # print accurate_results, ' -------------- ' , total
 
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
@@ -193,16 +204,17 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             optimizer.zero_grad()           # clear gradients for this training step
             TotalLoss.backward()                 # backpropagation, compute gradients
             optimizer.step()                # apply gradients
-        for step, (x,y) in enumerate(train_loader):
+        for _, (x, y) in enumerate(train_loader):
             b_x = Variable(x, volatile=True)
             b_y = Variable(y, volatile=True)
             if opt.cuda:
-                b_x = b_x.cuda(async = True) 
-                b_y = b_y.cuda(async = True)
+                b_x = b_x.cuda(async=True)
+                b_y = b_y.cuda(async=True)
             studentOutput = student(b_x)
-            accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
-	    total = total + studentOutput.size()[0]
+            accurate_results = accurate_results + \
+                getAccuracy(studentOutput, b_y)
+            total = total + studentOutput.size()[0]
 
-        print 'Accuracy = ', accurate_results/total
-        print 'Total Sample = ',total
+        print 'Accuracy = ', accurate_results / total
+        print 'Total Sample = ', total
         print 'Correct Output = ', accurate_results
