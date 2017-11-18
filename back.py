@@ -124,7 +124,7 @@ def getAccuracy(studentOutput, label):
     # print isAccurate
     Sum = torch.sum(isAccurate)
     # print 'Sum = ', Sum
-    return Sum.double()[0]
+    return Sum.data[0]
 
 
 def teacherStudent(train_loader, test_loader, teachers, opt):
@@ -137,16 +137,13 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
     hardLossCriterion = nn.CrossEntropyLoss()
     softLossCriterion = nn.L1Loss()
     derivativeCriterion = nn.L1Loss()
-    similarityCriterion = nn.L1Loss()
     if opt.cuda:
         hardLossCriterion = hardLossCriterion.cuda()
         student = student.cuda()
-        softLossCriterion = nn.L1Loss().cuda()
-        derivativeCriterion = nn.L1Loss().cuda()
-        similarityCriterion = nn.L1Loss().cuda()
+        softLossCriterion = softLossCriterion.cuda()
+        derivativeCriterion = derivativeCriterion.cuda()
 
     for epoch in range(opt.epochs):
-        # gives batch data, normalize x when iterate train_loader
         print "epoch : ", epoch
         accurate_results = 1.0
         total = 1.0
@@ -160,49 +157,43 @@ def teacherStudent(train_loader, test_loader, teachers, opt):
             studentOutput = student(b_x)
             softLoss = None
             derivativeLoss = None
-            teacherNo, teacher = None, None
             for teacherNo, teacher in enumerate(teachers):
+
+                #get the teacher output
                 teacherOutput = teacher(b_x)
-                if softLoss is None:
-                    softLoss = opt.wstudSim[teacherNo] * \
-                        softLossCriterion(
-                            studentOutput, teacherOutput.detach())
+
+                #calculate the similarity or the soft loss
+                teachersimLoss = opt.wstudSim[teacherNo] * \
+                    softLossCriterion(teacherOutput, studentOutput.detach())
+                studentsimLoss = opt.wstudSim[teacherNo] * \
+                    softLossCriterion(studentOutput, teacherOutput.detach())
+
+                #calculate the gradient parameters
+                teachergrad_params = torch.autograd.grad(
+                    teachersimLoss, teacher.parameters(), create_graph=True)
+                studentgrad_params = torch.autograd.grad(
+                    studentsimLoss, student.parameters(), create_graph=True)
+                teachergrad_params = teachergrad_params[-1]
+                studentgrad_params = studentgrad_params[-1]
+
+                # calculate the derivative loss
+                curDerivativeLoss = opt.wstudDeriv[teacherNo] * derivativeCriterion(
+                    studentgrad_params, teachergrad_params.detach())
+
+                if derivativeLoss is None:
+                    derivativeLoss = curDerivativeLoss
                 else:
-                    softLoss = softLoss + \
-                        opt.wstudSim[teacherNo] * \
-                        softLossCriterion(
-                            studentOutput, teacherOutput.detach())
-            teachersimLoss = opt.wstudSim[teacherNo] * \
-                similarityCriterion(teacherOutput, studentOutput.detach())
-            teachergrad_params = torch.autograd.grad(
-                teachersimLoss, teacher.parameters(), create_graph=True)
-            studentsimLoss = opt.wstudSim[teacherNo] * \
-                similarityCriterion(studentOutput, teacherOutput.detach())
-            studentgrad_params = torch.autograd.grad(
-                studentsimLoss, student.parameters(), create_graph=True)
-            teachergrad_params, studentgrad_params = teachergrad_params[-1], studentgrad_params[-1]
-            if derivativeLoss is None:
-                derivativeLoss = opt.wstudDeriv * \
-                    derivativeCriterion(studentgrad_params,
-                                        teachergrad_params.detach())
-            else:
-                derivativeLoss = derivativeLoss + opt.wstudDeriv * \
-                    derivativeCriterion(studentgrad_params,
-                                        teachergrad_params.detach())
-
-            #studtotalLoss = self.computenlogStud(student_out, teacher_out, studentgrad_params, teachergrad_params, y_discriminator, target, isReal, isFakeTeacher)
-
-            # printing accuracy
-            #(maxOutput, OutputLabel) = torch.max(studentOutput,1)
-            #accurate_results = accurate_results + getAccuracy(studentOutput, b_y)
-            #total = total + studentOutput.size()[0]
-            # print accurate_results, ' -------------- ' , total
+                    derivativeLoss = derivativeLoss + curDerivativeLoss
+                if softLoss is None:
+                    softLoss = studentsimLoss
+                else:
+                    softLoss = softLoss + studentsimLoss
 
             hardLoss = hardLossCriterion(
                 studentOutput, b_y)   # cross entropy lossi
             TotalLoss = hardLoss + softLoss + derivativeLoss
             optimizer.zero_grad()           # clear gradients for this training step
-            TotalLoss.backward()                 # backpropagation, compute gradients
+            TotalLoss.backward()            # backpropagation, compute gradients
             optimizer.step()                # apply gradients
         for _, (x, y) in enumerate(train_loader):
             b_x = Variable(x, volatile=True)

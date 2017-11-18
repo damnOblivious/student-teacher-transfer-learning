@@ -6,7 +6,7 @@ reporttype_choices = ['acc']
 criterion_choices = ['crossentropy']
 optim_choices = ['sgd', 'adam']
 model_def_choices = ['vgg16_bn']
-c=['hello']
+
 
 def myargparser():
     parser = argparse.ArgumentParser(description='GAN Compression...')
@@ -112,8 +112,8 @@ def myargparser():
                         type=float, help='Weight of discrim classification loss')
     parser.add_argument('--wstudSim', type=float, nargs='+',
                         help='Weight student reconstruction')
-    parser.add_argument('--wstudDeriv', default=600,
-                        type=float,  help='Weight student derivative')
+    parser.add_argument('--wstudDeriv', type=float,
+                        nargs='+', help='Weight student derivative')
 
     parser.add_argument('--label_reversal_freq', dest='augment', action='store_false',
                         help='whether to use standard augmentation (default: True)')
