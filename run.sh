@@ -1,14 +1,17 @@
 bash clean.sh;
 python main.py --data_dir '../data' \
 	--epochs 50 \
-	--batch-size 64  \
+	--weight_init \
+	--batch-size 32  \
 	--studentoptimType 'adam' \
 	--maxlr 0.1 \
 	--minlr 0.0001 \
-	--lr 0.008\
+	--lr 0.0008 \
 	--teacher 'vgg11_1' \
 	--wstudSim 10.0 \
-	--wstudDeriv 5.0 \
+	--wstudDeriv 1.0 \
+	--softWeight 5 \
+	--hardWeight 1 \
 	--learningratescheduler='cifarschedular' \
 	--decayinterval=15 \
 	--decaylevel=2 \

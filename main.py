@@ -43,6 +43,7 @@ def main():
     student = models.student.GetStudent()
     if opt.cuda:
         student = student.cuda()
+    student = models.setup(student, opt)
     dataloader = loader.loadCIFAR10(opt)
     train_loader = dataloader['train_loader']
     val_loader = dataloader['val_loader']
